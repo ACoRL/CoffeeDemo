@@ -5,6 +5,8 @@ _dir = "/home/acorl/Desktop/coffee_demo/rgb_frames/imgs"
 
 size = 300,230
 
+hello = "HELLOOOOOO"
+
 for file in os.listdir(_dir):
         print(file, end='    :    ')
         print(file.split("_")[0])
