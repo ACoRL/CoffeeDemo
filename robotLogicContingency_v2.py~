@@ -230,54 +230,39 @@ def navigate(direction):
 
 #from skimage.viewer import ImageViewer
 def main():
-    try:
-        # LOAD EVERRRYYYTHING
-        init_images()
+    prevgray,_ = freenect.sync_get_video()
+    prevgray = cv2.cvtColor(prevgray, cv2.COLOR_BGR2GRAY)
+    prevgray = cv2.resize(prevgray, (200, 200))
+    
+    while True:
+        gray,_ = freenect.sync_get_video()
+        gray = cv2.cvtColor(gray, cv2.COLOR_BGR2GRAY)
+        gray = cv2.resize(gray, (200, 200))
         
-        direction = 0
-        state = 0 #path state
-        retrieved_final_state_image = False
-        retrieving_coffee = True
-        while retrieving_coffee:
-            if DEBUGGING:
-                print("Entering State: " + str(state))
-            #get current frame from camera
-            curr_frame,_ = freenect.sync_get_video()
-            #scale down current frame
-            pil_image = Image.fromarray(curr_frame)
-            pil_image.thumbnail(size, Image.ANTIALIAS)
-            curr_frame = numpy.array(pil_image)
-            curr_frame = color.rgb2gray(curr_frame)
-            #viewer = ImageViewer(curr_frame)
-            #viewer.show()
+        flow = cv2.calcOpticalFlowFarneback(prevgray, gray, None, 0.5, 3, 15, 3, 5, 1.2, 0)
+        prevgray = gray
+        
+        step = 16
+        
+        h, w = gray.shape[:2]
+        y, x = np.mgrid[step/2:h:step, step/2:w:step].reshape(2, -1).astype(int)
+        fx, fy = flow[y,x].T
+        
+        fx_avg = np.average(fx)
+        
+        if ((fx_avg > 0)):
+        
+            print('Moved left')
+            #driveRight()
             
-            if not retrieved_final_state_image:
-                if DEBUGGING:
-                    print("Getting final state image.")
-                final_state_image = get_final_state_image(state)
-                retrieved_final_state_image = True
+        elif ((fx_avg < 0)):
+        
+            print('Moved right')
+            #driveLeft()
             
-            #if state is straight
-            # state%2
-            if DEBUGGING:
-                print("Entering drive loop")
-            if (True):
-                #check for state changes
-                if (transition_reached(curr_frame, final_state_image, float(sys.argv[-1]))):
-                    if DEBUGGING:
-                        print("Reached state change.")
-                        #driveForward()
-                    state += 1
-                    retrieved_final_state_image = False
-                else:
-                    direction = get_direction(curr_frame, state)
-                    navigate(direction)
-            else:
-                # We're in a turn.
-                print("Stuff happens.")
-                pass
-    finally:
-        lbar.send(0)
+        else:
+            print('Looking straight')
+            #driveForward()
             
 if __name__ == "__main__":
     main()
